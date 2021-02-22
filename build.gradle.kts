@@ -11,4 +11,6 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
+    implementation("com.squareup:javapoet:1.13.0")
+    implementation("org.ow2.asm:asm-tree:9.1")
 }
