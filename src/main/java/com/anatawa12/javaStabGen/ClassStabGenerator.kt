@@ -163,10 +163,9 @@ object ClassStabGenerator {
 
         val typeAnnotations = fieldNode.invisibleTypeAnnotations.orEmpty() +
                 fieldNode.visibleTypeAnnotations.orEmpty()
-        fun typeAnnotations(reference: TypeReference) =
-            typeAnnotations.filterWith(reference, classNode)
 
-        val type = typeNameFromDescriptor(fieldNode.desc, typeAnnotations(newTypeReference(FIELD))) ?: return null
+        val signature = fieldNode.signature ?: fieldNode.desc
+        val type = FieldSignatureVisitor(classNode, typeAnnotations).visit(signature).type ?: return null
         val name = classNode.name.asJavaIdentifierOrNull() ?: return null
         return FieldSpec.builder(type, name).apply {
             addModifiers(*createGeneralModifiers(fieldNode.access).toTypedArray())

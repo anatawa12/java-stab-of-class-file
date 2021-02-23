@@ -60,6 +60,15 @@ class ClassSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnno
     }
 }
 
+internal class FieldSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnnotationNode>)
+    : TypeNameSignatureVisitor(classNode, typeAnnotations.filterWith(newTypeReference(FIELD), classNode), {}) {
+    var type: TypeName? = null
+        private set
+    init {
+        process = { type = it }
+    }
+}
+
 abstract class TypeParametersSignatureVisitor(
     val classNode: ClassNode,
     val typeAnnotations: List<TypeAnnotationNode>,
@@ -109,10 +118,10 @@ abstract class TypeParametersSignatureVisitor(
     }
 }
 
-private class TypeNameSignatureVisitor(
+internal open class TypeNameSignatureVisitor(
     val classNode: ClassNode,
     var typeAnnotations: TypeAnnotations,
-    val process: (TypeName?) -> Unit,
+    var process: (TypeName?) -> Unit,
 ) : SignatureVisitor(Opcodes.ASM9) {
     var dimensions = 0
 
