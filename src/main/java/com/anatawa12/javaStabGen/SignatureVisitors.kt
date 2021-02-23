@@ -80,6 +80,7 @@ internal abstract class TypeParametersSignatureVisitor(
     var typeParameters = mutableListOf<TypeVariableName?>()
 
     override fun visitFormalTypeParameter(name: String) {
+        finishVisitParameter()
         typeVariableName = name
     }
 
