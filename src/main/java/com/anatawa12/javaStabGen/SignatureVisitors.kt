@@ -16,24 +16,24 @@ class MethodSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnn
 
     override fun visitParameterType(): SignatureVisitor {
         finishVisitParameter()
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            parameters += typeName?.asTypeName(typeAnnotations
-                .filterWith(newFormalParameterReference(parameters.size), classNode))
+        return TypeNameSignatureVisitor(classNode,
+            typeAnnotations.filterWith(newFormalParameterReference(parameters.size), classNode)) { typeName ->
+            parameters += typeName
         }
     }
 
     override fun visitReturnType(): SignatureVisitor {
         finishVisitParameter()
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            returns = typeName?.asTypeName(typeAnnotations
-                .filterWith(newTypeReference(METHOD_RETURN), classNode))
+        return TypeNameSignatureVisitor(classNode,
+            typeAnnotations.filterWith(newTypeReference(METHOD_RETURN), classNode)) { typeName ->
+            returns = typeName
         }
     }
 
     override fun visitExceptionType(): SignatureVisitor {
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            throws += typeName?.asTypeName(typeAnnotations
-                .filterWith(newExceptionReference(throws.size), classNode))
+        return TypeNameSignatureVisitor(classNode,
+            typeAnnotations.filterWith(newExceptionReference(throws.size), classNode)) { typeName ->
+            throws += typeName
         }
     }
 }
@@ -46,16 +46,16 @@ class ClassSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnno
 
     override fun visitSuperclass(): SignatureVisitor {
         finishVisitParameter()
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            superClass = typeName?.asTypeName(typeAnnotations
-                .filterWith(newSuperTypeReference(-1), classNode))
+        return TypeNameSignatureVisitor(classNode,
+            typeAnnotations.filterWith(newSuperTypeReference(-1), classNode)) { typeName ->
+            superClass = typeName
         }
     }
     override fun visitParameterType(): SignatureVisitor {
         finishVisitParameter()
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            superInterfaces += typeName?.asTypeName(typeAnnotations
-                .filterWith(newSuperTypeReference(superInterfaces.size), classNode))
+        return TypeNameSignatureVisitor(classNode,
+            typeAnnotations.filterWith(newSuperTypeReference(superInterfaces.size), classNode)) { typeName ->
+            superInterfaces += typeName
         }
     }
 }
@@ -78,8 +78,8 @@ abstract class TypeParametersSignatureVisitor(
         val annotations = typeAnnotations.filterWith(
             newTypeParameterBoundReference(CLASS_TYPE_PARAMETER_BOUND + typeParamSort,
                 typeParameters.size, boundCount++), classNode)
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            bounds.add(typeName?.asTypeName(annotations))
+        return TypeNameSignatureVisitor(classNode, annotations) { typeName ->
+            bounds.add(typeName)
         }
     }
 
@@ -88,8 +88,8 @@ abstract class TypeParametersSignatureVisitor(
         val annotations = typeAnnotations.filterWith(
             newTypeParameterBoundReference(CLASS_TYPE_PARAMETER_BOUND + typeParamSort,
                 typeParameters.size, boundCount++), classNode)
-        return TypeNameSignatureVisitor(classNode) { typeName ->
-            bounds.add(typeName?.asTypeName(annotations))
+        return TypeNameSignatureVisitor(classNode, annotations) { typeName ->
+            bounds.add(typeName)
         }
     }
 
@@ -111,176 +111,127 @@ abstract class TypeParametersSignatureVisitor(
 
 private class TypeNameSignatureVisitor(
     val classNode: ClassNode,
-    val process: (SignatureType?) -> Unit,
+    var typeAnnotations: TypeAnnotations,
+    val process: (TypeName?) -> Unit,
 ) : SignatureVisitor(Opcodes.ASM9) {
     var dimensions = 0
 
-    private fun SignatureType.computeArray(): SignatureType {
+    private fun TypeName.computeArray(): TypeName {
         var type = this
         repeat(dimensions) {
-            type = SignatureArrayType(type)
+            type = ArrayTypeName.of(type)
+            typeAnnotations = typeAnnotations.outArray()
+            type = typeAnnotations.annotate(type)
         }
         return type
     }
 
     override fun visitArrayType(): SignatureVisitor {
         dimensions++
+        typeAnnotations = typeAnnotations.inArray()
         return this
     }
 
     override fun visitBaseType(descriptor: Char) {
-        process(PrimitiveSignatureType.fromDescriptor(descriptor).computeArray())
+        process(primitiveTypeFromDescriptor(descriptor)
+            .let(typeAnnotations::annotate)
+            .computeArray())
     }
 
     override fun visitTypeVariable(name: String) {
-        process(name.asJavaIdentifierOrNull()?.let(::TypeParam)?.computeArray())
+        process(name.asJavaIdentifierOrNull()
+            ?.let(TypeVariableName::get)
+            ?.let(typeAnnotations::annotate)
+            ?.computeArray())
     }
 
     // classType
-    private var type: ObjectSignatureType? = null
+    var baseType: TypeNameBuilder? = null
+    var typeVariables: MutableList<TypeName?>? = null
+    var rootAnnotations: TypeAnnotations? = null
 
     override fun visitClassType(name: String) {
-        type = SimpleSignatureType(name)
+        val (className, annotations) = classNameFromInternalName(name, classNode, typeAnnotations) ?: kotlin.run {
+            baseType = null
+            return
+        }
+        rootAnnotations = typeAnnotations
+        baseType = TypeNameBuilder.Class(className)
+        typeAnnotations = annotations
     }
 
     override fun visitInnerClassType(name: String) {
-        type = type?.let { InnerSignatureType(it, name) }
+        baseType = baseType?.computeTypeVariables(typeVariables)?.nested(name)
+            ?.also { it.typeAnnotations = typeAnnotations }
+        typeAnnotations = typeAnnotations.nested()
+        typeVariables = null
     }
 
+    private fun typeVariables(): MutableList<TypeName?> = typeVariables ?: mutableListOf<TypeName?>().also { typeVariables = it }
+
     override fun visitTypeArgument() {
-        type?.params?.add(FullWildcard)
+        typeVariables().add(WildcardTypeName.subtypeOf(TypeName.OBJECT))
     }
 
     override fun visitTypeArgument(wildcard: Char): SignatureVisitor {
-        return TypeNameSignatureVisitor(classNode) { name ->
-            if (name == null) {
-                type = null
-                return@TypeNameSignatureVisitor
-            }
-            val type = type ?: return@TypeNameSignatureVisitor
-            name as ObjectSignatureType
+        var annotations = typeAnnotations.outer().typeParam(typeVariables().size)
+        if (wildcard != '=') annotations = annotations.wildcardBound()
+        return TypeNameSignatureVisitor(classNode, annotations) { name ->
             when (wildcard) {
-                '=' -> type.params.add(Wildcard(name, kind = BoundKind.Exactry))
+                '=' -> typeVariables().add(name)
                 // +: ? extends TYPE
-                '+' -> type.params.add(Wildcard(name, kind = BoundKind.SubType))
+                '+' -> typeVariables().add(WildcardTypeName.subtypeOf(name))
                 // -: ? super TYPE
-                '-' -> type.params.add(Wildcard(name, kind = BoundKind.SuperType))
+                '-' -> typeVariables().add(WildcardTypeName.supertypeOf(name))
             }
         }
     }
 
     override fun visitEnd() {
-        process(type?.computeArray())
+        typeAnnotations = rootAnnotations!!
+        process(baseType?.computeTypeVariables(typeVariables)?.toTypeName()?.computeArray())
     }
 }
 
-private enum class BoundKind {
-    Exactry,
-    SubType,
-    SuperType,
-}
-private sealed class SignatureTypeParam {
-    abstract fun asTypeName(annotations: TypeAnnotations): TypeName?
-}
+sealed class TypeNameBuilder {
+    var typeAnnotations: TypeAnnotations? = null
 
-private object FullWildcard : SignatureTypeParam() {
-    private val typeName = WildcardTypeName.subtypeOf(TypeName.OBJECT)
-    override fun asTypeName(annotations: TypeAnnotations) = typeName.let(annotations::annotate)
-}
+    abstract fun computeTypeVariables(typeVariables: MutableList<TypeName?>?): TypeNameBuilder?
+    abstract fun nested(name: String): TypeNameBuilder?
+    abstract fun toTypeName(): TypeName
 
-private class Wildcard(val base: ReferenceSignatureType, val kind: BoundKind) : SignatureTypeParam() {
-    override fun asTypeName(annotations: TypeAnnotations): TypeName? = when (kind) {
-        BoundKind.Exactry -> base.asTypeName(annotations)
-        BoundKind.SubType -> base.asTypeName(annotations.wildcardBound())
-            ?.let(WildcardTypeName::subtypeOf)
-            ?.let(annotations::annotate)
-        BoundKind.SuperType -> base.asTypeName(annotations.wildcardBound())
-            ?.let(WildcardTypeName::supertypeOf)
-            ?.let(annotations::annotate)
-    }
-}
-
-private sealed class SignatureType {
-    abstract fun asTypeName(annotations: TypeAnnotations): TypeName?
-}
-
-private sealed class PrimitiveSignatureType(val typeName: TypeName) : SignatureType() {
-    override fun asTypeName(annotations: TypeAnnotations): TypeName? = typeName.let(annotations::annotate)
-
-    companion object {
-        fun fromDescriptor(descriptor: Char): PrimitiveSignatureType = when (descriptor) {
-            'V' -> PrimitiveSignatureTypeVoid
-            'Z' -> PrimitiveSignatureTypeBoolean
-            'B' -> PrimitiveSignatureTypeByte
-            'S' -> PrimitiveSignatureTypeShort
-            'I' -> PrimitiveSignatureTypeInt
-            'J' -> PrimitiveSignatureTypeLong
-            'C' -> PrimitiveSignatureTypeChar
-            'F' -> PrimitiveSignatureTypeFloat
-            'D' -> PrimitiveSignatureTypeDouble
-            else -> error("invalid or unsupported first char of descriptor")
+    class Class(val className: ClassName): TypeNameBuilder() {
+        override fun computeTypeVariables(typeVariables: MutableList<TypeName?>?): TypeNameBuilder? {
+            if (typeVariables == null) return this
+            if (typeVariables.any { it == null }) return null
+            return Parameterized(ParameterizedTypeName.get(toTypeName(), *typeVariables.toTypedArray()))
         }
+
+        override fun nested(name: String): TypeNameBuilder? =
+            name.asJavaIdentifierOrNull()
+                ?.let { toTypeName().nestedClass(it) }
+                ?.let(::Class)
+
+        override fun toTypeName(): ClassName = typeAnnotations?.annotate(className) ?: className
     }
-}
-// 9
-private object PrimitiveSignatureTypeVoid : PrimitiveSignatureType(TypeName.VOID)
-private object PrimitiveSignatureTypeBoolean : PrimitiveSignatureType(TypeName.BOOLEAN)
-private object PrimitiveSignatureTypeByte : PrimitiveSignatureType(TypeName.BYTE)
-private object PrimitiveSignatureTypeShort : PrimitiveSignatureType(TypeName.SHORT)
-private object PrimitiveSignatureTypeInt : PrimitiveSignatureType(TypeName.INT)
-private object PrimitiveSignatureTypeLong : PrimitiveSignatureType(TypeName.LONG)
-private object PrimitiveSignatureTypeChar : PrimitiveSignatureType(TypeName.CHAR)
-private object PrimitiveSignatureTypeFloat : PrimitiveSignatureType(TypeName.FLOAT)
-private object PrimitiveSignatureTypeDouble : PrimitiveSignatureType(TypeName.DOUBLE)
-private sealed class ReferenceSignatureType : SignatureType()
-private data class SignatureArrayType(val type: SignatureType) : ReferenceSignatureType() {
-    override fun asTypeName(annotations: TypeAnnotations): TypeName?
-    = type.asTypeName(annotations.inArray())
-        ?.let(ArrayTypeName::of)
-        ?.let(annotations::annotate)
 
-}
-private data class TypeParam(val name: String) : ReferenceSignatureType() {
-    override fun asTypeName(annotations: TypeAnnotations): TypeName =
-        TypeVariableName.get(name).let(annotations::annotate)
-}
+    class Parameterized(val className: ParameterizedTypeName, val name: String? = null): TypeNameBuilder() {
+        override fun computeTypeVariables(typeVariables: MutableList<TypeName?>?): TypeNameBuilder? {
+            if (typeVariables == null) return this
+            if (typeVariables.any { it == null }) return null
+            val name = checkNotNull(name) { "must be nested parameterized type" }
+            return Parameterized(className.nestedClass(name, typeVariables).let { typeAnnotations?.annotate(it) ?: it })
+        }
 
-private sealed class ObjectSignatureType : ReferenceSignatureType() {
-    abstract val params: MutableList<SignatureTypeParam>
-    abstract fun asTypeNameInternal(annotations: TypeAnnotations): Pair<TypeName, TypeAnnotations>?
-    override final fun asTypeName(annotations: TypeAnnotations): TypeName? = asTypeNameInternal(annotations)?.first
-}
-private data class SimpleSignatureType(
-    val internalName: String,
-    override val params: MutableList<SignatureTypeParam> = mutableListOf(),
-) : ObjectSignatureType() {
-    override fun asTypeNameInternal(annotations: TypeAnnotations): Pair<TypeName, TypeAnnotations>? {
-        val (type, ann) = classNameFromInternalName(internalName, annotations.classNode, annotations) ?: return null
-        return type.parameterized(params, ann.outer())?.let { it to ann.nested() }
+        override fun nested(name: String): TypeNameBuilder? {
+            val className = toTypeName()
+            return name.asJavaIdentifierOrNull()
+                ?.let { Parameterized(className, it) }
+        }
+
+        override fun toTypeName(): ParameterizedTypeName =
+            this.name?.let { thisName -> className.nestedClass(thisName) }
+                ?.let { typeAnnotations?.annotate(it) ?: it }
+                ?: className
     }
-}
-
-private data class InnerSignatureType(
-    val outer: ObjectSignatureType,
-    val name: String,
-    override val params: MutableList<SignatureTypeParam> = mutableListOf(),
-) : ObjectSignatureType() {
-    override fun asTypeNameInternal(annotations: TypeAnnotations): Pair<TypeName, TypeAnnotations>? {
-        val (type, ann) = outer.asTypeNameInternal(annotations) ?: return null
-        return when (type) {
-            is ClassName -> type.nestedClass(name).parameterized(params, ann.outer())?.let(ann::annotate)
-            is ParameterizedTypeName -> type
-                .nestedClass(name, params.mapIndexed { i, param -> param.asTypeName(ann.outer().typeParam(i)) })
-                .let(ann::annotate)
-            else -> error("unsupported ObjectSignatureType of inner class")
-        }?.let { it to ann.nested() }
-    }
-}
-
-private fun ClassName.parameterized(params: MutableList<SignatureTypeParam>, annotations: TypeAnnotations): TypeName? {
-    if (params.isNotEmpty())
-        return ParameterizedTypeName.get(this,
-            *params.mapIndexedArrayOrNull { i, param -> param.asTypeName(annotations.typeParam(i)) }
-                ?: return null)
-    return this
 }

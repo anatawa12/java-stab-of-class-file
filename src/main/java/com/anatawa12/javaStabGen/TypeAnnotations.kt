@@ -1,6 +1,7 @@
 package com.anatawa12.javaStabGen
 
 import com.squareup.javapoet.ClassName
+import com.squareup.javapoet.ParameterizedTypeName
 import com.squareup.javapoet.TypeName
 import com.squareup.javapoet.TypeVariableName
 import org.objectweb.asm.TypePath
@@ -57,6 +58,11 @@ class TypeAnnotations private constructor(
     }
 
     fun annotate(type: TypeVariableName): TypeVariableName {
+        if (current.isEmpty()) return type
+        return type.annotated(current.toSpecs(classNode))
+    }
+
+    fun annotate(type: ParameterizedTypeName): ParameterizedTypeName {
         if (current.isEmpty()) return type
         return type.annotated(current.toSpecs(classNode))
     }
