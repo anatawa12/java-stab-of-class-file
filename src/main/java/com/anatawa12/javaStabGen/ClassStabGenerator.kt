@@ -211,6 +211,10 @@ object ClassStabGenerator {
 
             addAnnotations(fieldNode.invisibleAnnotations?.toSpecs(classNode).orEmpty())
             addAnnotations(fieldNode.visibleAnnotations?.toSpecs(classNode).orEmpty())
+
+            fieldNode.value?.let { value ->
+                initializer(value.asAnnotationCode(classNode))
+            }
         }.build()
     }
 
