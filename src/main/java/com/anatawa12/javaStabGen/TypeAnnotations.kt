@@ -8,7 +8,7 @@ import org.objectweb.asm.TypePath
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.TypeAnnotationNode
 
-class TypeAnnotations private constructor(
+internal class TypeAnnotations private constructor(
     val nodes: List<TypeAnnotationNode>,
     val path: TypePath?,
     val classNode: ClassNode,

@@ -3,7 +3,7 @@ package com.anatawa12.javaStabGen
 import org.objectweb.asm.Opcodes
 import java.lang.reflect.Modifier
 
-object Modifiers {
+internal object Modifiers {
     fun isPublic(access: Int): Boolean = Modifier.isPublic(access)
     fun isPrivate(access: Int): Boolean = Modifier.isPrivate(access)
     fun isProtected(access: Int): Boolean = Modifier.isProtected(access)

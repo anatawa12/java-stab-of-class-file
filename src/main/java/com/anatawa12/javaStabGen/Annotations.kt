@@ -7,9 +7,10 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.tree.ClassNode
 
-fun List<AnnotationNode>.toSpecs(classNode: ClassNode): List<AnnotationSpec> = mapNotNull { it.toSpec(classNode) }
+internal fun List<AnnotationNode>.toSpecs(classNode: ClassNode): List<AnnotationSpec> =
+    mapNotNull { it.toSpec(classNode) }
 
-fun AnnotationNode.toSpec(classNode: ClassNode): AnnotationSpec? {
+internal fun AnnotationNode.toSpec(classNode: ClassNode): AnnotationSpec? {
     val typeName = typeNameFromDescriptor(desc, classNode) as? ClassName ?: return null
     val builder = AnnotationSpec.builder(typeName)
 
@@ -22,7 +23,7 @@ fun AnnotationNode.toSpec(classNode: ClassNode): AnnotationSpec? {
     return builder.build()
 }
 
-fun Any.asAnnotationCode(classNode: ClassNode): CodeBlock? {
+internal fun Any.asAnnotationCode(classNode: ClassNode): CodeBlock? {
     return when (this) {
         is ByteArray -> asArrayBodyCode()
         is BooleanArray -> asArrayBodyCode()
@@ -54,45 +55,45 @@ fun Any.asAnnotationCode(classNode: ClassNode): CodeBlock? {
     }
 }
 
-fun AnnotationNode.asArrayBodyCode(classNode: ClassNode): CodeBlock? = CodeBlock.of("\$L", toSpec(classNode))
+internal fun AnnotationNode.asArrayBodyCode(classNode: ClassNode): CodeBlock? = CodeBlock.of("\$L", toSpec(classNode))
 
-fun List<*>.asArrayBodyCode(classNode: ClassNode) = CodeBlock.builder().add("{")
+internal fun List<*>.asArrayBodyCode(classNode: ClassNode) = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it!!.asAnnotationCode(classNode)) } }.add("}").build()
 
-fun ByteArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun ByteArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun BooleanArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun BooleanArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun ShortArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun ShortArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun CharArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun CharArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun IntArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun IntArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun LongArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun LongArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun FloatArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun FloatArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun DoubleArray.asArrayBodyCode() = CodeBlock.builder().add("{")
+internal fun DoubleArray.asArrayBodyCode() = CodeBlock.builder().add("{")
     .apply { forEach { add("\$L, ", it.asCode()) } }.add("}").build()
 
-fun Byte.asCode() = CodeBlock.of("\$L", this)
-fun Boolean.asCode() = CodeBlock.of("\$L", this)
-fun Short.asCode() = CodeBlock.of("\$L", this)
-fun Char.asCode() = CodeBlock.of("\$%L'", this.escape())
-fun Int.asCode() = CodeBlock.of("\$L", this)
-fun Long.asCode() = CodeBlock.of("\$L", this)
-fun Float.asCode() = CodeBlock.of("\$L", this)
-fun Double.asCode() = CodeBlock.of("\$L", this)
-fun String.asCode() = CodeBlock.of("\$S", this)
-fun Type.asAnnotationCode(classNode: ClassNode): CodeBlock? =
+internal fun Byte.asCode() = CodeBlock.of("\$L", this)
+internal fun Boolean.asCode() = CodeBlock.of("\$L", this)
+internal fun Short.asCode() = CodeBlock.of("\$L", this)
+internal fun Char.asCode() = CodeBlock.of("\$%L'", this.escape())
+internal fun Int.asCode() = CodeBlock.of("\$L", this)
+internal fun Long.asCode() = CodeBlock.of("\$L", this)
+internal fun Float.asCode() = CodeBlock.of("\$L", this)
+internal fun Double.asCode() = CodeBlock.of("\$L", this)
+internal fun String.asCode() = CodeBlock.of("\$S", this)
+internal fun Type.asAnnotationCode(classNode: ClassNode): CodeBlock? =
     asTypeName(classNode)?.let { CodeBlock.of("\$T.class", it) }
 
 private fun Char.escape(): String = when (this) {

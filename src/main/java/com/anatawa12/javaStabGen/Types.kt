@@ -9,18 +9,19 @@ import org.objectweb.asm.signature.SignatureVisitor
 import org.objectweb.asm.tree.ClassNode
 import javax.lang.model.SourceVersion
 
-fun Type.asTypeName(typeAnnotations: TypeAnnotations) =
+internal fun Type.asTypeName(typeAnnotations: TypeAnnotations) =
     typeNameFromDescriptor(descriptor, typeAnnotations)
-fun Type.asTypeName(classNode: ClassNode) =
+
+internal fun Type.asTypeName(classNode: ClassNode) =
     typeNameFromDescriptor(descriptor, classNode)
 
-fun typeNameFromDescriptor(descriptor: String, typeAnnotations: TypeAnnotations): TypeName? =
+internal fun typeNameFromDescriptor(descriptor: String, typeAnnotations: TypeAnnotations): TypeName? =
     typeNameFromDescriptorInternal(descriptor, typeAnnotations.classNode, 0, typeAnnotations)
 
-fun typeNameFromDescriptor(descriptor: String, classNode: ClassNode): TypeName? =
+internal fun typeNameFromDescriptor(descriptor: String, classNode: ClassNode): TypeName? =
     typeNameFromDescriptorInternal(descriptor, classNode, 0, TypeAnnotations.EMPTY)
 
-fun primitiveTypeFromDescriptor(descriptor: Char): TypeName = when (descriptor) {
+internal fun primitiveTypeFromDescriptor(descriptor: Char): TypeName = when (descriptor) {
     'V' -> TypeName.VOID
     'Z' -> TypeName.BOOLEAN
     'B' -> TypeName.BYTE
@@ -59,6 +60,7 @@ private fun TypeName.processAnnotations(typeAnnotations: TypeAnnotations): TypeN
 
 private fun TypeName.processDimensions(dimension: Int, typeAnnotations: TypeAnnotations): TypeName {
     var self = this
+
     @Suppress("NAME_SHADOWING")
     var typeAnnotations = typeAnnotations
     repeat(dimension) {
@@ -68,11 +70,12 @@ private fun TypeName.processDimensions(dimension: Int, typeAnnotations: TypeAnno
     }
     return self
 }
-fun classNameFromInternalName(internalName: String, classNode: ClassNode): ClassName? {
+
+internal fun classNameFromInternalName(internalName: String, classNode: ClassNode): ClassName? {
     return classNameFromInternalName(internalName, classNode, TypeAnnotations.EMPTY)?.first
 }
 
-fun classNameFromInternalName(internalName: String, typeAnnotations: TypeAnnotations): ClassName? {
+internal fun classNameFromInternalName(internalName: String, typeAnnotations: TypeAnnotations): ClassName? {
     return classNameFromInternalName(internalName, typeAnnotations.classNode, typeAnnotations)?.first
 }
 
@@ -103,7 +106,7 @@ internal fun classNameFromInternalName(
     }
 }
 
-fun CharSequence.isJavaIdentifierName(): Boolean {
+internal fun CharSequence.isJavaIdentifierName(): Boolean {
     if (SourceVersion.isKeyword(this)) return false
     if (isEmpty()) return false
     if (!this[0].isJavaIdentifierStart()) return false
@@ -113,10 +116,10 @@ fun CharSequence.isJavaIdentifierName(): Boolean {
     return true
 }
 
-fun String.isJavaQualifiedName(): Boolean = this.split('.').all { it.isJavaIdentifierName() }
+internal fun String.isJavaQualifiedName(): Boolean = this.split('.').all { it.isJavaIdentifierName() }
 
-fun String.asJavaIdentifierOrNull() = if (isJavaIdentifierName()) this else null
+internal fun String.asJavaIdentifierOrNull() = if (isJavaIdentifierName()) this else null
 
-fun <S : SignatureVisitor> S.visit(signature: String) = also {
+internal fun <S : SignatureVisitor> S.visit(signature: String) = also {
     SignatureReader(signature).accept(this)
 }

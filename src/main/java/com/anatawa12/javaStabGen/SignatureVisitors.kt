@@ -7,8 +7,8 @@ import org.objectweb.asm.signature.SignatureVisitor
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.TypeAnnotationNode
 
-class MethodSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnnotationNode>)
-    : TypeParametersSignatureVisitor(classNode, typeAnnotations, METHOD_TYPE_PARAMETER) {
+internal class MethodSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnnotationNode>) :
+    TypeParametersSignatureVisitor(classNode, typeAnnotations, METHOD_TYPE_PARAMETER) {
     val parameters = mutableListOf<TypeName?>()
     var returns: TypeName? = null
         private set
@@ -38,8 +38,8 @@ class MethodSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnn
     }
 }
 
-class ClassSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnnotationNode>)
-    : TypeParametersSignatureVisitor(classNode, typeAnnotations, CLASS_TYPE_PARAMETER) {
+internal class ClassSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnnotationNode>) :
+    TypeParametersSignatureVisitor(classNode, typeAnnotations, CLASS_TYPE_PARAMETER) {
     var superClass: TypeName? = null
         private set
     val superInterfaces = mutableListOf<TypeName?>()
@@ -69,10 +69,10 @@ internal class FieldSignatureVisitor(classNode: ClassNode, typeAnnotations: List
     }
 }
 
-abstract class TypeParametersSignatureVisitor(
+internal abstract class TypeParametersSignatureVisitor(
     val classNode: ClassNode,
     val typeAnnotations: List<TypeAnnotationNode>,
-    private val typeParamSort: Int
+    private val typeParamSort: Int,
 ) : SignatureVisitor(Opcodes.ASM9) {
     private var typeVariableName: String? = null
     private var bounds = mutableListOf<TypeName?>()
@@ -202,14 +202,14 @@ internal open class TypeNameSignatureVisitor(
     }
 }
 
-sealed class TypeNameBuilder {
+internal sealed class TypeNameBuilder {
     var typeAnnotations: TypeAnnotations? = null
 
     abstract fun computeTypeVariables(typeVariables: MutableList<TypeName?>?): TypeNameBuilder?
     abstract fun nested(name: String): TypeNameBuilder?
     abstract fun toTypeName(): TypeName
 
-    class Class(val className: ClassName): TypeNameBuilder() {
+    class Class(val className: ClassName) : TypeNameBuilder() {
         override fun computeTypeVariables(typeVariables: MutableList<TypeName?>?): TypeNameBuilder? {
             if (typeVariables == null) return this
             if (typeVariables.any { it == null }) return null

@@ -71,13 +71,14 @@ object ClassStabGenerator {
     }
 
     // TODO: annotation default
-    fun generateMethod(classNode: ClassNode, methodNode: MethodNode): MethodSpec? {
+    private fun generateMethod(classNode: ClassNode, methodNode: MethodNode): MethodSpec? {
         if (Modifiers.isBridge(methodNode.access)) return null
         if (Modifiers.isSynthetic(methodNode.access)) return null
         if (isSyntheticVisibleMethod(classNode, methodNode)) return null
         if (methodNode.name != "<init>"
             && methodNode.name != "<clinit>"
-            && !methodNode.name.isJavaIdentifierName()) return null
+            && !methodNode.name.isJavaIdentifierName()
+        ) return null
         if (methodNode.name == "<clinit>") return null
         val name = methodNode.name
 
@@ -160,7 +161,7 @@ object ClassStabGenerator {
         }
     }
 
-    fun generateField(classNode: ClassNode, fieldNode: FieldNode): FieldSpec? {
+    private fun generateField(classNode: ClassNode, fieldNode: FieldNode): FieldSpec? {
         if (Modifiers.isSynthetic(fieldNode.access)) return null
 
         val typeAnnotations = fieldNode.invisibleTypeAnnotations.orEmpty() +
