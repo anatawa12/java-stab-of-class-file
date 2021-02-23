@@ -6,7 +6,7 @@ This is for a workaround of [KT-24309].
 
 ### As a Gradle Library
 
-1. add ``com.anatawa12.java-stab-gen:gradle-library:<version>`` to buildscript depencencies.
+1. add ``com.anatawa12.java-stab-gen:gradle-library:1.0.0`` to buildscript depencencies.
    <details>
       <summary>kotlin</summary>
        ```groovy
@@ -15,7 +15,7 @@ This is for a workaround of [KT-24309].
                mavenCentral()
            }
            dependencies {
-               classpath("com.anatawa12.java-stab-gen:gradle-library:$version")
+               classpath("com.anatawa12.java-stab-gen:gradle-library:1.0.0")
            }
        }
        ```
@@ -28,7 +28,7 @@ This is for a workaround of [KT-24309].
                mavenCentral()
            }
            dependencies {
-               classpath "com.anatawa12.java-stab-gen:gradle-library:$version"
+               classpath "com.anatawa12.java-stab-gen:gradle-library:1.0.0"
            }
        }
        ```
