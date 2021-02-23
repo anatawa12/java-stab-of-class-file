@@ -25,7 +25,7 @@ This is for a workaround of [KT-24309].
       import com.anatawa12.javaStabGen.gradle.GenerateJavaStab
 
       val generateJavaStab by tasks.creating(GenerateJavaStab::class) {
-          generatedDir = file("$projectDir/generated/stab")
+          generatedDir = file("$buildDir/generated/stab")
           classpath = classpath_you_want_to_generate_stab_for
       }
       ```
@@ -37,7 +37,7 @@ This is for a workaround of [KT-24309].
       ```groovy
       import com.anatawa12.javaStabGen.gradle.GenerateJavaStab
       task generateJavaStab(type: GenerateJavaStab) {
-          generatedDir = file("$projectDir/generated/stab")
+          generatedDir = file("$buildDir/generated/stab")
           classpath = classpath_you_want_to_generate_stab_for
       }
       ```
