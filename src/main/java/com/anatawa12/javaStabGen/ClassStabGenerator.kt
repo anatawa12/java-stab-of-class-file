@@ -248,8 +248,7 @@ object ClassStabGenerator {
     /**
      * general modifiers: access modifier and static/final
      */
-    @OptIn(ExperimentalStdlibApi::class)
-    private fun createGeneralModifiers(access: Int) = buildList {
+    private fun createGeneralModifiers(access: Int) = mutableListOf<Modifier>().apply {
         if (Modifiers.isPublic(access)) add(Modifier.PUBLIC)
         if (Modifiers.isPrivate(access)) add(Modifier.PRIVATE)
         if (Modifiers.isProtected(access)) add(Modifier.PROTECTED)
