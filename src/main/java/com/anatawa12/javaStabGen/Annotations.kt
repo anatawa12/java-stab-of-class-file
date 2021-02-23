@@ -14,7 +14,7 @@ internal fun AnnotationNode.toSpec(classNode: ClassNode): AnnotationSpec? {
     val typeName = typeNameFromDescriptor(desc, classNode) as? ClassName ?: return null
     val builder = AnnotationSpec.builder(typeName)
 
-    for (list in values.asSequence().chunked(2)) {
+    for (list in values.orEmpty().asSequence().chunked(2)) {
         val name = list[0] as String
         val value = list[1]
         builder.addMember(name, value.asAnnotationCode(classNode))
