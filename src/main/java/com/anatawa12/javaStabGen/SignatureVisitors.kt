@@ -73,7 +73,7 @@ internal abstract class TypeParametersSignatureVisitor(
     val classNode: ClassNode,
     val typeAnnotations: List<TypeAnnotationNode>,
     private val typeParamSort: Int,
-) : SignatureVisitor(Opcodes.ASM9) {
+) : SignatureVisitor(Opcodes.ASM5) {
     private var typeVariableName: String? = null
     private var bounds = mutableListOf<TypeName?>()
     private var boundCount = 0
@@ -122,7 +122,7 @@ internal open class TypeNameSignatureVisitor(
     val classNode: ClassNode,
     var typeAnnotations: TypeAnnotations,
     var process: (TypeName?) -> Unit,
-) : SignatureVisitor(Opcodes.ASM9) {
+) : SignatureVisitor(Opcodes.ASM5) {
     var dimensions = 0
 
     private fun TypeName.computeArray(): TypeName {
