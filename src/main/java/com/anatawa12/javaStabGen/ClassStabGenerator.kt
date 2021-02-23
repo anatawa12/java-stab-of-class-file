@@ -203,7 +203,7 @@ object ClassStabGenerator {
 
         val signature = fieldNode.signature ?: fieldNode.desc
         val type = FieldSignatureVisitor(classNode, typeAnnotations).visit(signature).type ?: return null
-        val name = classNode.name.asJavaIdentifierOrNull() ?: return null
+        val name = fieldNode.name.asJavaIdentifierOrNull() ?: return null
         return FieldSpec.builder(type, name).apply {
             addModifiers(*createGeneralModifiers(fieldNode.access).toTypedArray())
             if (Modifiers.isTransient(fieldNode.access)) addModifiers(Modifier.TRANSIENT)
