@@ -51,7 +51,7 @@ private tailrec fun typeNameFromDescriptorInternal(
     '[' -> typeNameFromDescriptorInternal(descriptor.substring(1), classNode, dimension + 1,
         typeAnnotations = typeAnnotations.inArray())
     'L' -> classNameFromInternalName(descriptor.substring(1, descriptor.length - 1), classNode, typeAnnotations)
-        ?.processDimensions(dimension, typeAnnotations)
+        ?.first?.processDimensions(dimension, typeAnnotations)
     else -> error("invalid or unsupported first char of descriptor")
 }
 
@@ -66,34 +66,40 @@ private fun TypeName.processDimensions(dimension: Int, typeAnnotations: TypeAnno
         typeAnnotations = typeAnnotations.outArray()
         self = typeAnnotations.annotate(self)
     }
-    check(typeAnnotations.isRoot())
     return self
 }
 fun classNameFromInternalName(internalName: String, classNode: ClassNode): ClassName? {
-    return classNameFromInternalName(internalName, classNode, TypeAnnotations.EMPTY)
+    return classNameFromInternalName(internalName, classNode, TypeAnnotations.EMPTY)?.first
 }
 
 fun classNameFromInternalName(internalName: String, typeAnnotations: TypeAnnotations): ClassName? {
-    return classNameFromInternalName(internalName, typeAnnotations.classNode, typeAnnotations)
+    return classNameFromInternalName(internalName, typeAnnotations.classNode, typeAnnotations)?.first
 }
 
-private fun classNameFromInternalName(
+internal fun classNameFromInternalName(
     internalName: String,
     classNode: ClassNode,
     typeAnnotations: TypeAnnotations,
-): ClassName? {
+): Pair<ClassName, TypeAnnotations>? {
     val innerClass = classNode.innerClasses.find { it.name == internalName }
     if (innerClass == null) {
         val className = internalName.substringAfterLast('/')
         val packageName = internalName.substringBeforeLast('/', "").replace('/', '.')
         if (!className.isJavaIdentifierName()) return null
         if (packageName.isNotEmpty() && !packageName.isJavaQualifiedName()) return null
-        return ClassName.get(packageName, className).let(typeAnnotations::annotate)
+        return ClassName.get(packageName, className).let(typeAnnotations::annotate) to typeAnnotations.nested()
     } else {
         if (innerClass.outerName == null) return null
         if (innerClass.innerName == null) return null
-        val type = classNameFromInternalName(innerClass.outerName, classNode, typeAnnotations.nested()) ?: return null
-        return type.nestedClass(innerClass.innerName).let(typeAnnotations::annotate)
+        if (Modifiers.isStatic(innerClass.access)) {
+            return classNameFromInternalName(innerClass.outerName, classNode)
+                ?.nestedClass(innerClass.innerName)
+                ?.let(typeAnnotations::annotate)
+                ?.let { it to typeAnnotations.nested() }
+        } else {
+            val (type, anns) = classNameFromInternalName(innerClass.outerName, classNode, typeAnnotations) ?: return null
+            return type.nestedClass(innerClass.innerName).let(anns::annotate) to anns.nested()
+        }
     }
 }
 

@@ -81,30 +81,13 @@ object ClassStabGenerator {
             var throws: List<TypeName>
 
             // parameters
-            if (methodNode.signature != null) {
-                MethodSignatureVisitor(classNode).visit(methodNode.signature).also { visitor ->
-                    returns = visitor.returns
-                        ?: return null
-                    parameters = visitor.parameters.nullIfSomeAreNull()
-                        ?: return null
-                    throws = visitor.throws.nullIfSomeAreNull()
-                        ?: return null
-                }
-            } else {
-                val methodType = Type.getMethodType(methodNode.desc)
-
-                returns = methodType.returnType.asTypeName(typeAnnotations(newTypeReference(METHOD_RETURN)))
+            val signature = methodNode.signature ?: buildSignature(classNode, methodNode)
+            MethodSignatureVisitor(classNode, typeAnnotations).visit(signature).also { visitor ->
+                returns = visitor.returns
                     ?: return null
-                parameters = methodType.argumentTypes
-                    .mapIndexed { i, type -> type.asTypeName(typeAnnotations(newFormalParameterReference(i))) }
-                    .drop(syntheticParametersCount(classNode, methodNode))
-                    .nullIfSomeAreNull()
+                parameters = visitor.parameters.nullIfSomeAreNull()
                     ?: return null
-                throws = methodNode.exceptions
-                    .mapIndexed { i, type ->
-                        classNameFromInternalName(type, typeAnnotations(newFormalParameterReference(i)))
-                    }
-                    .nullIfSomeAreNull()
+                throws = visitor.throws.nullIfSomeAreNull()
                     ?: return null
             }
 
@@ -127,13 +110,30 @@ object ClassStabGenerator {
         }.build()
     }
 
+    private fun buildSignature(classNode: ClassNode, methodNode: MethodNode): String {
+        val methodType = Type.getMethodType(methodNode.desc)
+
+        return buildString {
+            append('(')
+            for (type in methodType.argumentTypes.asSequence().drop(syntheticParametersCount(classNode, methodNode))) {
+                append(type)
+            }
+            append(')')
+            append(methodType.returnType)
+            for (exception in methodNode.exceptions) {
+                append('^')
+                append(exception)
+            }
+        }
+    }
+
     fun generateField(classNode: ClassNode, fieldNode: FieldNode): FieldSpec? {
         if (Modifiers.isSynthetic(fieldNode.access)) return null
 
         val typeAnnotations = fieldNode.invisibleTypeAnnotations.orEmpty() +
                 fieldNode.visibleTypeAnnotations.orEmpty()
         fun typeAnnotations(reference: TypeReference) =
-            TypeAnnotations.root(typeAnnotations.filterWith(reference), classNode)
+            typeAnnotations.filterWith(reference, classNode)
 
         val type = typeNameFromDescriptor(fieldNode.desc, typeAnnotations(newTypeReference(FIELD))) ?: return null
         val name = classNode.name.asJavaIdentifierOrNull() ?: return null

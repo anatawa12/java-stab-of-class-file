@@ -2,6 +2,7 @@ package com.anatawa12.javaStabGen
 
 import com.squareup.javapoet.ClassName
 import com.squareup.javapoet.TypeName
+import com.squareup.javapoet.TypeVariableName
 import org.objectweb.asm.TypePath
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.TypeAnnotationNode
@@ -23,14 +24,25 @@ class TypeAnnotations private constructor(
 
     fun inArray(): TypeAnnotations = copy(nestedPath("["), this)
 
-    fun nested(): TypeAnnotations = copy(nestedPath("."), this)
-
     fun outArray(): TypeAnnotations {
         check(path != null) { "type path is root" }
         check(path.getStep(path.length - 1) == TypePath.ARRAY_ELEMENT) { "type path is not of array element" }
         if (outerCache != null) return outerCache
         return copy(TypePath.fromString(path.toString().dropLast(1)))
     }
+
+    fun nested(): TypeAnnotations = copy(nestedPath("."), this)
+
+    fun outer(): TypeAnnotations {
+        check(path != null) { "type path is root" }
+        check(path.getStep(path.length - 1) == TypePath.INNER_TYPE) { "type path is not of inner type" }
+        if (outerCache != null) return outerCache
+        return copy(TypePath.fromString(path.toString().dropLast(1)))
+    }
+
+    fun typeParam(i: Int): TypeAnnotations = copy(nestedPath("$i;"), this)
+
+    fun wildcardBound(): TypeAnnotations = copy(nestedPath("*"), this)
 
     fun isRoot(): Boolean = path == null
 
@@ -40,6 +52,11 @@ class TypeAnnotations private constructor(
     }
 
     fun annotate(type: ClassName): ClassName {
+        if (current.isEmpty()) return type
+        return type.annotated(current.toSpecs(classNode))
+    }
+
+    fun annotate(type: TypeVariableName): TypeVariableName {
         if (current.isEmpty()) return type
         return type.annotated(current.toSpecs(classNode))
     }
