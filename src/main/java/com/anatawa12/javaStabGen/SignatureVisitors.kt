@@ -51,7 +51,8 @@ internal class ClassSignatureVisitor(classNode: ClassNode, typeAnnotations: List
             superClass = typeName
         }
     }
-    override fun visitParameterType(): SignatureVisitor {
+
+    override fun visitInterface(): SignatureVisitor {
         finishVisitParameter()
         return TypeNameSignatureVisitor(classNode,
             typeAnnotations.filterWith(newSuperTypeReference(superInterfaces.size), classNode)) { typeName ->
