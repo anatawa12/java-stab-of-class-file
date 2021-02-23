@@ -1,6 +1,7 @@
 package com.anatawa12.javaStabGen
 
 import com.squareup.javapoet.*
+import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
@@ -9,6 +10,13 @@ import javax.lang.model.element.Modifier
 
 // TODO: annotations
 object ClassStabGenerator {
+    fun generate(byteArray: ByteArray): Pair<ClassName, TypeSpec>? {
+        val reader = ClassReader(byteArray)
+        val node = ClassNode()
+        reader.accept(node, 0)
+        return generate(node)
+    }
+
     fun generate(classNode: ClassNode): Pair<ClassName, TypeSpec>? {
         if (classNode.name == "java/lang/Object") return null // no support for java.lang.Object
         val access = classNode.innerClasses.find { it.name == classNode.name }?.access
