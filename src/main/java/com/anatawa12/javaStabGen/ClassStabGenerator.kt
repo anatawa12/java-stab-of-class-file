@@ -2,6 +2,8 @@ package com.anatawa12.javaStabGen
 
 import com.squareup.javapoet.*
 import org.objectweb.asm.Type
+import org.objectweb.asm.TypeReference
+import org.objectweb.asm.TypeReference.*
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.MethodNode
@@ -53,6 +55,8 @@ object ClassStabGenerator {
 
         val typeAnnotations = methodNode.invisibleTypeAnnotations.orEmpty() +
                 methodNode.visibleTypeAnnotations.orEmpty()
+        fun typeAnnotations(reference: TypeReference) =
+            TypeAnnotations.root(typeAnnotations.filterWith(reference), classNode)
 
         return MethodSpec.methodBuilder(name).apply {
             // modifiers
@@ -88,14 +92,17 @@ object ClassStabGenerator {
             } else {
                 val methodType = Type.getMethodType(methodNode.desc)
 
-                //returnsAnnotations.filter { it.typePath }
-                returns = methodType.returnType.asTypeName(classNode)
+                returns = methodType.returnType.asTypeName(typeAnnotations(newTypeReference(METHOD_RETURN)))
                     ?: return null
-                parameters = methodType.argumentTypes.map { it.asTypeName(classNode) }
+                parameters = methodType.argumentTypes
+                    .mapIndexed { i, type -> type.asTypeName(typeAnnotations(newFormalParameterReference(i))) }
                     .drop(syntheticParametersCount(classNode, methodNode))
                     .nullIfSomeAreNull()
                     ?: return null
-                throws = methodNode.exceptions.map { classNameFromInternalName(it, classNode) }
+                throws = methodNode.exceptions
+                    .mapIndexed { i, type ->
+                        classNameFromInternalName(type, typeAnnotations(newFormalParameterReference(i)))
+                    }
                     .nullIfSomeAreNull()
                     ?: return null
             }
@@ -121,7 +128,13 @@ object ClassStabGenerator {
 
     fun generateField(classNode: ClassNode, fieldNode: FieldNode): FieldSpec? {
         if (Modifiers.isSynthetic(fieldNode.access)) return null
-        val type = typeNameFromDescriptor(fieldNode.desc, classNode) ?: return null
+
+        val typeAnnotations = fieldNode.invisibleTypeAnnotations.orEmpty() +
+                fieldNode.visibleTypeAnnotations.orEmpty()
+        fun typeAnnotations(reference: TypeReference) =
+            TypeAnnotations.root(typeAnnotations.filterWith(reference), classNode)
+
+        val type = typeNameFromDescriptor(fieldNode.desc, typeAnnotations(newTypeReference(FIELD))) ?: return null
         val name = classNode.name.asJavaIdentifierOrNull() ?: return null
         return FieldSpec.builder(type, name).apply {
             addModifiers(*createGeneralModifiers(fieldNode.access).toTypedArray())
