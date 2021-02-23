@@ -18,12 +18,28 @@ object ClassStabGenerator {
         if (Modifiers.isSynthetic(access)) return null
         if (Modifiers.isModule(access)) return null
         val name = classNameFromInternalName(classNode.name, classNode) ?: return null
-        val builder = when {
-            Modifiers.isEnum(access) -> TypeSpec.enumBuilder(name)
-            Modifiers.isAnnotation(access) -> TypeSpec.annotationBuilder(name)
-            Modifiers.isInterface(access) -> TypeSpec.interfaceBuilder(name)
-            else -> TypeSpec.classBuilder(name)
+        val kind = when {
+            Modifiers.isEnum(access) -> TypeSpec.Kind.ENUM
+            Modifiers.isAnnotation(access) -> TypeSpec.Kind.ANNOTATION
+            Modifiers.isInterface(access) -> TypeSpec.Kind.INTERFACE
+            else -> TypeSpec.Kind.CLASS
         }
+        val builder = when (kind) {
+            TypeSpec.Kind.CLASS -> TypeSpec.classBuilder(name)
+            TypeSpec.Kind.INTERFACE -> TypeSpec.interfaceBuilder(name)
+            TypeSpec.Kind.ENUM -> TypeSpec.enumBuilder(name)
+            TypeSpec.Kind.ANNOTATION -> TypeSpec.annotationBuilder(name)
+        }
+
+        val signature = classNode.signature ?: buildSignature(classNode)
+        val visitor = ClassSignatureVisitor(classNode,
+            classNode.invisibleTypeAnnotations.orEmpty() + classNode.visibleTypeAnnotations.orEmpty())
+            .visit(signature)
+        val superClass = visitor.superClass ?: return null
+        val superInterfaces = visitor.superInterfaces.nullIfSomeAreNull() ?: return null
+
+        if (kind == TypeSpec.Kind.CLASS) builder.superclass(superClass)
+        builder.addSuperinterfaces(superInterfaces)
 
         if (!Modifiers.isInterface(access) && Modifiers.isAbstract(access))
             builder.addModifiers(Modifier.ABSTRACT)
@@ -43,6 +59,16 @@ object ClassStabGenerator {
 
         return name to builder.build()
     }
+//*
+    private fun buildSignature(classNode: ClassNode): String {
+        return buildString {
+            append('L').append(classNode.superName).append(';')
+            for (interfaceName in classNode.interfaces) {
+                append('L').append(interfaceName).append(';')
+            }
+        }
+    }
+// */
 
     // TODO: annotation default
     fun generateMethod(classNode: ClassNode, methodNode: MethodNode): MethodSpec? {

@@ -38,6 +38,28 @@ class MethodSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnn
     }
 }
 
+class ClassSignatureVisitor(classNode: ClassNode, typeAnnotations: List<TypeAnnotationNode>)
+    : TypeParametersSignatureVisitor(classNode, typeAnnotations, CLASS_TYPE_PARAMETER) {
+    var superClass: TypeName? = null
+        private set
+    val superInterfaces = mutableListOf<TypeName?>()
+
+    override fun visitSuperclass(): SignatureVisitor {
+        finishVisitParameter()
+        return TypeNameSignatureVisitor(classNode) { typeName ->
+            superClass = typeName?.asTypeName(typeAnnotations
+                .filterWith(newSuperTypeReference(-1), classNode))
+        }
+    }
+    override fun visitParameterType(): SignatureVisitor {
+        finishVisitParameter()
+        return TypeNameSignatureVisitor(classNode) { typeName ->
+            superInterfaces += typeName?.asTypeName(typeAnnotations
+                .filterWith(newSuperTypeReference(superInterfaces.size), classNode))
+        }
+    }
+}
+
 abstract class TypeParametersSignatureVisitor(
     val classNode: ClassNode,
     val typeAnnotations: List<TypeAnnotationNode>,
