@@ -13,7 +13,7 @@ class ClassesGenerator {
         return true
     }
 
-    fun generate(): MutableList<JavaFile> {
+    fun generate(): List<JavaFile> {
         val classes = classes.mapValues { it.value.toMutableMap() }
         val files = mutableListOf<JavaFile>()
         for ((className, typeSpec) in classes[null].orEmpty()) {
