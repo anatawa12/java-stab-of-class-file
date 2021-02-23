@@ -35,6 +35,9 @@ object ClassStabGenerator {
             builder.addField(generateField(classNode, field) ?: continue)
         }
 
+        builder.addAnnotations(classNode.invisibleAnnotations?.toSpecs(classNode).orEmpty())
+        builder.addAnnotations(classNode.visibleAnnotations?.toSpecs(classNode).orEmpty())
+
         return name to builder.build()
     }
 
@@ -110,6 +113,9 @@ object ClassStabGenerator {
             for (throwsException in throws) {
                 addException(throwsException)
             }
+
+            addAnnotations(methodNode.invisibleAnnotations?.toSpecs(classNode).orEmpty())
+            addAnnotations(methodNode.visibleAnnotations?.toSpecs(classNode).orEmpty())
         }.build()
     }
 
@@ -121,6 +127,9 @@ object ClassStabGenerator {
             addModifiers(*createGeneralModifiers(fieldNode.access).toTypedArray())
             if (Modifiers.isTransient(fieldNode.access)) addModifiers(Modifier.TRANSIENT)
             if (Modifiers.isVolatile(fieldNode.access)) addModifiers(Modifier.VOLATILE)
+
+            addAnnotations(fieldNode.invisibleAnnotations?.toSpecs(classNode).orEmpty())
+            addAnnotations(fieldNode.visibleAnnotations?.toSpecs(classNode).orEmpty())
         }.build()
     }
 
