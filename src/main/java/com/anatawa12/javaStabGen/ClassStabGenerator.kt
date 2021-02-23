@@ -159,7 +159,9 @@ object ClassStabGenerator {
             if (methodNode.name != "<init>") returns(returns)
             for ((i, param) in parameters.withIndex()) {
                 val variable = methodNode.localVariables?.find { it.index == i + parametersSlotOffset }
-                addParameter(ParameterSpec.builder(param, variable?.name ?: "param_$i").build())
+                addParameter(ParameterSpec
+                    .builder(param, variable?.name?.asJavaIdentifierOrNull() ?: "param_$i")
+                    .build())
             }
             if (varargs) varargs()
             for (throwsException in throws) {
