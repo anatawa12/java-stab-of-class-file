@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier
 // TODO: annotations
 object ClassStabGenerator {
     fun generate(classNode: ClassNode): Pair<ClassName, TypeSpec>? {
+        if (classNode.name == "java/lang/Object") return null // no support for java.lang.Object
         val access = classNode.innerClasses.find { it.name == classNode.name }?.access
             ?: classNode.access
         if (Modifiers.isSynthetic(access)) return null
