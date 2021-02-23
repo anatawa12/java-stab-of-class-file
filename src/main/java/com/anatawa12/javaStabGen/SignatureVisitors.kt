@@ -68,7 +68,7 @@ abstract class TypeParametersSignatureVisitor(
     private var typeVariableName: String? = null
     private var bounds = mutableListOf<TypeName?>()
     private var boundCount = 0
-    protected var typeParameters = mutableListOf<TypeVariableName?>()
+    var typeParameters = mutableListOf<TypeVariableName?>()
 
     override fun visitFormalTypeParameter(name: String) {
         typeVariableName = name

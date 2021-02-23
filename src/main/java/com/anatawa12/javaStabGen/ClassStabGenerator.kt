@@ -35,8 +35,11 @@ object ClassStabGenerator {
         val visitor = ClassSignatureVisitor(classNode,
             classNode.invisibleTypeAnnotations.orEmpty() + classNode.visibleTypeAnnotations.orEmpty())
             .visit(signature)
+        val typeParameters = visitor.typeParameters.nullIfSomeAreNull()
         val superClass = visitor.superClass ?: return null
         val superInterfaces = visitor.superInterfaces.nullIfSomeAreNull() ?: return null
+
+        builder.addTypeVariables(typeParameters)
 
         if (kind == TypeSpec.Kind.CLASS) builder.superclass(superClass)
         builder.addSuperinterfaces(superInterfaces)
@@ -59,7 +62,7 @@ object ClassStabGenerator {
 
         return name to builder.build()
     }
-//*
+
     private fun buildSignature(classNode: ClassNode): String {
         return buildString {
             append('L').append(classNode.superName).append(';')
@@ -68,7 +71,6 @@ object ClassStabGenerator {
             }
         }
     }
-// */
 
     // TODO: annotation default
     fun generateMethod(classNode: ClassNode, methodNode: MethodNode): MethodSpec? {
@@ -83,8 +85,6 @@ object ClassStabGenerator {
 
         val typeAnnotations = methodNode.invisibleTypeAnnotations.orEmpty() +
                 methodNode.visibleTypeAnnotations.orEmpty()
-        fun typeAnnotations(reference: TypeReference) =
-            typeAnnotations.filterWith(reference, classNode)
 
         return MethodSpec.methodBuilder(name).apply {
             // modifiers
@@ -103,6 +103,7 @@ object ClassStabGenerator {
             if (Modifiers.isStrict(methodNode.access)) addModifiers(Modifier.STRICTFP)
             if (hasBody) addCode("throw null;")
 
+            var typeParameters: List<TypeVariableName>
             var returns: TypeName
             var parameters: List<TypeName>
             var throws: List<TypeName>
@@ -110,6 +111,8 @@ object ClassStabGenerator {
             // parameters
             val signature = methodNode.signature ?: buildSignature(classNode, methodNode)
             MethodSignatureVisitor(classNode, typeAnnotations).visit(signature).also { visitor ->
+                typeParameters = visitor.typeParameters.nullIfSomeAreNull()
+                    ?: return null
                 returns = visitor.returns
                     ?: return null
                 parameters = visitor.parameters.nullIfSomeAreNull()
@@ -118,6 +121,7 @@ object ClassStabGenerator {
                     ?: return null
             }
 
+            addTypeVariables(typeParameters)
 
             val parametersSlotOffset = (if (Modifiers.isStatic(methodNode.access)) 0 else 1) +
                     syntheticParametersCount(classNode, methodNode)
