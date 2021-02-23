@@ -2,8 +2,6 @@ package com.anatawa12.javaStabGen
 
 import com.squareup.javapoet.*
 import org.objectweb.asm.Type
-import org.objectweb.asm.TypeReference
-import org.objectweb.asm.TypeReference.*
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.MethodNode
@@ -134,6 +132,10 @@ object ClassStabGenerator {
             if (varargs) varargs()
             for (throwsException in throws) {
                 addException(throwsException)
+            }
+
+            methodNode.annotationDefault?.let { default ->
+                defaultValue(default.asAnnotationCode(classNode))
             }
 
             addAnnotations(methodNode.invisibleAnnotations?.toSpecs(classNode).orEmpty())
