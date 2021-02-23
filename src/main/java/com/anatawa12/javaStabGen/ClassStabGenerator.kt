@@ -54,6 +54,29 @@ object ClassStabGenerator {
         for (field in classNode.fields) {
             builder.addField(generateField(classNode, field) ?: continue)
         }
+        if (Modifiers.isEnum(classNode.access)) {
+            if (!builder.methodSpecs.any { it.name == "<ctor>" && it.parameters.isEmpty() })
+                builder.addMethod(MethodSpec.constructorBuilder().addCode("throw null;").build())
+            val abstracts = builder.methodSpecs.filter { it.modifiers.contains(Modifier.ABSTRACT) }
+
+            for (field in classNode.fields) {
+                if (Modifiers.isEnum(field.access))
+                    builder.addEnumConstant(field.name, TypeSpec.anonymousClassBuilder("")
+                        .apply {
+                            for (abstractMethod in abstracts) {
+                                addMethod(MethodSpec.methodBuilder(abstractMethod.name)
+                                    .apply {
+                                        addModifiers(abstractMethod.modifiers.toMutableSet()
+                                            .also { it.remove(Modifier.ABSTRACT) })
+                                        for (parameter in abstractMethod.parameters)
+                                            addParameter(parameter)
+                                        returns(abstractMethod.returnType)
+                                        addCode("throw null;")
+                                    }.build())
+                            }
+                        }.build())
+            }
+        }
 
         builder.addAnnotations(classNode.invisibleAnnotations?.toSpecs(classNode).orEmpty())
         builder.addAnnotations(classNode.visibleAnnotations?.toSpecs(classNode).orEmpty())
@@ -163,6 +186,7 @@ object ClassStabGenerator {
 
     private fun generateField(classNode: ClassNode, fieldNode: FieldNode): FieldSpec? {
         if (Modifiers.isSynthetic(fieldNode.access)) return null
+        if (Modifiers.isEnum(fieldNode.access)) return null
 
         val typeAnnotations = fieldNode.invisibleTypeAnnotations.orEmpty() +
                 fieldNode.visibleTypeAnnotations.orEmpty()
