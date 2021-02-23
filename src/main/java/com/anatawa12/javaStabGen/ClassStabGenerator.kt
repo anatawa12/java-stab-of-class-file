@@ -51,12 +51,13 @@ object ClassStabGenerator {
         if (methodNode.name != "<init>"
             && methodNode.name != "<clinit>"
             && !methodNode.name.isJavaIdentifierName()) return null
-        val name = if (methodNode.name == "<clinit>") "<init>" else methodNode.name
+        if (methodNode.name == "<clinit>") return null
+        val name = methodNode.name
 
         val typeAnnotations = methodNode.invisibleTypeAnnotations.orEmpty() +
                 methodNode.visibleTypeAnnotations.orEmpty()
         fun typeAnnotations(reference: TypeReference) =
-            TypeAnnotations.root(typeAnnotations.filterWith(reference), classNode)
+            typeAnnotations.filterWith(reference, classNode)
 
         return MethodSpec.methodBuilder(name).apply {
             // modifiers
