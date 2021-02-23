@@ -60,4 +60,32 @@ This is for a workaround of [KT-24309].
 
    </details>
 
+## Examples
+
+### Workaround of [KT-24309]
+
+<details>
+<summary>groovy</summary>
+
+```groovy
+import com.anatawa12.javaStabGen.gradle.GenerateJavaStab
+
+def theLibraryDependsThisProject = TODO
+
+// generate stab for $theLibraryDependsThisProject
+// into "$buildDir/generated/stab"
+task generateJavaStab(type: GenerateJavaStab) {
+   generatedDir = file("$buildDir/generated/stab")
+   classpath = files(theLibraryDependsThisProject)
+}
+compileKotlin {
+   dependsOn(generateJavaStab)
+   // add and include generateJavaStab.generatedDir as java source code
+   source(generateJavaStab.generatedDir)
+   include("**/*.java")
+}
+```
+
+</details>
+
 [KT-24309]: https://youtrack.jetbrains.com/issue/KT-24309
