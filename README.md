@@ -7,16 +7,32 @@ This is for a workaround of [KT-24309].
 ### As a Gradle Library
 
 1. add ``com.anatawa12.java-stab-gen:gradle-library:<version>`` to buildscript depencencies.
-   ```groovy
-   buildscript {
-       repositories {
-           mavenCentral()
+   <details>
+      <summary>kotlin</summary>
+       ```groovy
+       buildscript {
+           repositories {
+               mavenCentral()
+           }
+           dependencies {
+               classpath("com.anatawa12.java-stab-gen:gradle-library:$version")
+           }
        }
-       dependencies {
-           classpath("com.anatawa12.java-stab-gen:gradle-library:<version>")
+       ```
+   </details>
+   <details>
+      <summary>groovy</summary>
+       ```groovy
+       buildscript {
+           repositories {
+               mavenCentral()
+           }
+           dependencies {
+               classpath "com.anatawa12.java-stab-gen:gradle-library:$version"
+           }
        }
-   }
-   ```
+       ```
+   </details>
 2. create task with type `com.anatawa12.javaStabGen.gradle.ClassesGenerator`
    <details>
       <summary>kotlin</summary>
@@ -31,7 +47,7 @@ This is for a workaround of [KT-24309].
       ```
 
    </details>
-   <details open>
+   <details>
       <summary>groovy</summary>
 
       ```groovy
