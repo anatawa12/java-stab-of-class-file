@@ -21,6 +21,7 @@ open class GenerateJavaStab : DefaultTask() {
     @TaskAction
     fun generate() {
         val generatedDir = generatedDir ?: error("no generatedDir is specified")
+        generatedDir.deleteRecursively()
 
         val gen = ClassesGenerator()
         for (file in classpath) {
@@ -31,12 +32,7 @@ open class GenerateJavaStab : DefaultTask() {
         }
 
         for (javaFile in gen.generate()) {
-            var filePath = generatedDir
-            for (s in javaFile.packageName.split('.')) {
-                filePath = filePath.resolve(s)
-            }
-            filePath = filePath.resolve("${javaFile.typeSpec.name}.java")
-            javaFile.writeTo(filePath)
+            javaFile.writeTo(generatedDir)
         }
     }
 
